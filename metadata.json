@@ -1,0 +1,5 @@
+{
+  "name": "EduSphere - School Management System",
+  "description": "A comprehensive, role-based school management platform featuring student tracking, attendance, grading, fee management, and AI-powered administrative assistance using Gemini.",
+  "requestFramePermissions": []
+}
