@@ -3,6 +3,8 @@ import { MOCK_ADMIN, MOCK_USERS_DIRECTORY, MOCK_STUDENTS, MOCK_TEACHERS, MOCK_AS
 
 const IS_PRODUCTION = typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1');
 
+// In production (Vercel), we default to relative /api. 
+// If it fails, we fall back to mock data instantly.
 const API_BASE_URL = IS_PRODUCTION 
   ? '/api' 
   : 'http://127.0.0.1:3001/api';
@@ -56,22 +58,15 @@ class ApiService {
       }
 
       if (!response.ok) {
-        // In production or if backend is not set up, trigger mock fallback for non-200 results
-        if (USE_MOCK_FALLBACK) {
-            throw new Error('FALLBACK_TRIGGER');
-        }
+        if (USE_MOCK_FALLBACK) throw new Error('FALLBACK_TRIGGER');
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `API Error: ${response.status}`);
       }
 
       return response.json();
     } catch (error: any) {
-      if (error.message === 'Unauthorized') {
-        throw error;
-      }
-      if (USE_MOCK_FALLBACK) {
-        throw new Error('FALLBACK_TRIGGER');
-      }
+      if (error.message === 'Unauthorized') throw error;
+      if (USE_MOCK_FALLBACK) throw new Error('FALLBACK_TRIGGER');
       throw error;
     }
   }
@@ -94,9 +89,9 @@ class ApiService {
           const mockToken = `mock-token-${user.id}`;
           this.token = mockToken;
           localStorage.setItem('token', mockToken);
-          return userWithoutPassword;
+          return userWithoutPassword as User;
         }
-        throw new Error('Invalid credentials');
+        throw new Error('Invalid email or password');
       }
       throw e;
     }
@@ -109,7 +104,7 @@ class ApiService {
     } catch (e: any) {
        if (e.message === 'FALLBACK_TRIGGER') {
          const user = MOCK_USERS_DIRECTORY.find(u => this.token?.includes(u.id)) || MOCK_ADMIN;
-         return user;
+         return user as User;
        }
        return null;
     }

@@ -1,18 +1,19 @@
-
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize Gemini
-// Note: In a real environment, verify API_KEY exists.
-// Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY}); as per guidelines.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy-initialization helper to prevent crashes if process.env is wonky at load time
+const getAIInstance = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({ apiKey });
+};
 
 export const generateAnnouncement = async (topic: string, tone: string): Promise<string> => {
-  if (!process.env.API_KEY) return "AI Service Unavailable: Missing API Key.";
+  const ai = getAIInstance();
+  if (!ai) return "AI Service Unavailable: Missing API Key.";
 
   try {
     const prompt = `Write a school announcement about "${topic}". The tone should be ${tone}. Keep it concise (under 100 words).`;
     
-    // Fix: Update model to 'gemini-3-flash-preview' for basic text tasks as per guidelines
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
@@ -26,7 +27,8 @@ export const generateAnnouncement = async (topic: string, tone: string): Promise
 };
 
 export const analyzeStudentPerformance = async (studentName: string, grades: string): Promise<string> => {
-  if (!process.env.API_KEY) return "AI Service Unavailable: Missing API Key.";
+  const ai = getAIInstance();
+  if (!ai) return "AI Service Unavailable: Missing API Key.";
 
   try {
     const prompt = `
@@ -35,7 +37,6 @@ export const analyzeStudentPerformance = async (studentName: string, grades: str
       Highlight strengths and areas for improvement.
     `;
     
-    // Fix: Update model to 'gemini-3-flash-preview' for complex reasoning/analysis as per guidelines
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
