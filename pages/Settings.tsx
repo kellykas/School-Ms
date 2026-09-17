@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getDB, isNeon, resetDemoData, currentUser } from "../services/api";
+import { getDB, isNeon, getNeonError, resetDemoData, currentUser } from "../services/api";
 import { Badge, Button, Card, ConfirmDialog, PageHeader, useTheme, useToast, cx } from "../components/ui";
 
 const THEME_OPTIONS: Array<{ key: "light" | "dark" | "system"; label: string; icon: string; hint: string }> = [
@@ -90,7 +90,9 @@ export default function Settings() {
               <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
                 {isNeon()
                   ? "All records are saved to your Neon database in real time — data survives across devices and browsers."
-                  : "Data persists only in this browser. Add a VITE_DATABASE_URL (Neon connection string) to enable cloud persistence."}
+                  : getNeonError()
+                    ? `Cloud database unreachable, running on this browser instead. Reason: ${getNeonError()}`
+                    : "Data persists only in this browser. Add a VITE_DATABASE_URL (Neon connection string) to enable cloud persistence."}
               </p>
             </div>
           </div>

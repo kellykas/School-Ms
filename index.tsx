@@ -39,10 +39,13 @@ export default function App() {
 
   if (!db) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-slate-950">
-        <div className="flex flex-col items-center gap-3">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-slate-950">
+        <div className="flex flex-col items-center gap-3 text-center">
           <span className="flex h-12 w-12 animate-pulse items-center justify-center rounded-2xl bg-brand-600 text-2xl text-white">🎓</span>
-          <p className="text-sm text-gray-500 dark:text-slate-400">Loading EduSphere…</p>
+          <p className="text-sm font-medium text-gray-600 dark:text-slate-300">Loading EduSphere…</p>
+          <p className="max-w-xs text-xs text-gray-400 dark:text-slate-500">
+            Connecting to the school database — the first visit can take a few seconds while data is prepared.
+          </p>
         </div>
       </div>
     );

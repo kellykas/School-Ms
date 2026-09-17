@@ -207,65 +207,54 @@ function rowToFeePayment(r: Row): FeePayment {
 }
 function rowToAudit(r: Row): AuditLog {
   return { id: str(r.id), timestamp: str(r.timestamp), actorId: str(r.admin_id), actorName: str(r.admin_name), action: str(r.action), entity: str(r.entity), detail: str(r.detail) };
+}/** Batched multi-row INSERT — one round-trip per table instead of per row. */
+async function insertRows(s: SqlTagged, table: string, columns: string[], casts: string[], rows: unknown[][]): Promise<void> {
+  if (rows.length === 0) return;
+  const params: unknown[] = [];
+  let p = 1;
+  const chunks = rows.map((row) => {
+    const placeholders = row.map((v, i) => {
+      params.push(v);
+      const cast = casts[i] ?? "";
+      const ph = `$${p++}${cast}`;
+      return ph;
+    });
+    return `(${placeholders.join(", ")})`;
+  });
+  const text = `INSERT INTO ${table} (${columns.join(", ")}) VALUES ${chunks.join(", ")} ON CONFLICT (id) DO NOTHING`;
+  await s.query(text, params);
 }
 
 async function seed(s: SqlTagged): Promise<DB> {
   const { seedDB } = await import("./mockData");
   const seed = seedDB();
 
-  for (const u of seed.users) {
-    await s`INSERT INTO users (id, name, email, role, password, avatar_color, active)
-      VALUES (${u.id}, ${u.name}, ${u.email}, ${u.role}, ${u.password}, ${u.avatarColor}, ${u.active})
-      ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const t of seed.teachers) {
-    await s`INSERT INTO teachers (id, user_id, name, email, subjects, classes, phone, join_date)
-      VALUES (${t.id}, ${t.userId}, ${t.name}, ${t.email}, ${JSON.stringify(t.subjects)}, ${JSON.stringify(t.classes)}, ${t.phone}, ${t.joinDate})
-      ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const sub of seed.subjects) {
-    await s`INSERT INTO subjects (id, name, code, color) VALUES (${sub.id}, ${sub.name}, ${sub.code}, ${sub.color}) ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const c of seed.classes) {
-    await s`INSERT INTO classes (id, name, section, teacher_id, subjects)
-      VALUES (${c.id}, ${c.name}, ${c.section}, ${c.teacherId}, ${JSON.stringify(c.subjects)}) ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const st of seed.students) {
-    await s`INSERT INTO students (id, user_id, name, class_id, roll_no, gender, dob, guardian_name, parent_user_id, status, admission_date)
-      VALUES (${st.id}, ${st.userId ?? null}, ${st.name}, ${st.classId}, ${st.rollNo}, ${st.gender}, ${st.dob}, ${st.guardianName}, ${st.parentUserId ?? null}, ${st.status}, ${st.admissionDate})
-      ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const a of seed.attendance) {
-    await s`INSERT INTO attendance (id, class_id, date, entries, marked_by)
-      VALUES (${a.id}, ${a.classId}, ${a.date}, ${JSON.stringify(a.entries)}::jsonb, ${a.markedBy}) ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const e of seed.exams) {
-    await s`INSERT INTO exams (id, name, term, class_id, subject_id, date, max_score, status)
-      VALUES (${e.id}, ${e.name}, ${e.term}, ${e.classId}, ${e.subjectId}, ${e.date}, ${e.maxScore}, ${e.status}) ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const g of seed.grades) {
-    await s`INSERT INTO grades (id, exam_id, student_id, score) VALUES (${g.id}, ${g.examId}, ${g.studentId}, ${g.score}) ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const a of seed.assignments) {
-    await s`INSERT INTO assignments (id, title, description, class_id, subject_id, teacher_id, due_date, status, created_at)
-      VALUES (${a.id}, ${a.title}, ${a.description}, ${a.classId}, ${a.subjectId}, ${a.teacherId}, ${a.dueDate}, ${a.status}, ${a.createdAt}) ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const sub of seed.submissions) {
-    await s`INSERT INTO submissions (id, assignment_id, student_id, submitted_at, status, score, feedback)
-      VALUES (${sub.id}, ${sub.assignmentId}, ${sub.studentId}, ${sub.submittedAt}, ${sub.status}, ${sub.score ?? null}, ${sub.feedback ?? null}) ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const f of seed.feeItems) {
-    await s`INSERT INTO fee_items (id, name, class_id, term, amount, due_date)
-      VALUES (${f.id}, ${f.name}, ${f.classId}, ${f.term}, ${f.amount}, ${f.dueDate}) ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const p of seed.feePayments) {
-    await s`INSERT INTO fee_payments (id, fee_item_id, student_id, amount, date, method, status)
-      VALUES (${p.id}, ${p.feeItemId}, ${p.studentId}, ${p.amount}, ${p.date}, ${p.method}, ${p.status}) ON CONFLICT (id) DO NOTHING`;
-  }
-  for (const l of seed.auditLogs) {
-    await s`INSERT INTO audit_logs (id, timestamp, admin_id, admin_name, action, entity, detail)
-      VALUES (${l.id}, ${l.timestamp}, ${l.actorId}, ${l.actorName}, ${l.action}, ${l.entity}, ${l.detail}) ON CONFLICT (id) DO NOTHING`;
-  }
+  await insertRows(s, "users", ["id", "name", "email", "role", "password", "avatar_color", "active"], ["", "", "", "", "", "", ""],
+    seed.users.map((u) => [u.id, u.name, u.email, u.role, u.password, u.avatarColor, u.active]));
+  await insertRows(s, "teachers", ["id", "user_id", "name", "email", "subjects", "classes", "phone", "join_date"], ["", "", "", "", "", "", "", ""],
+    seed.teachers.map((t) => [t.id, t.userId, t.name, t.email, JSON.stringify(t.subjects), JSON.stringify(t.classes), t.phone, t.joinDate]));
+  await insertRows(s, "subjects", ["id", "name", "code", "color"], ["", "", "", ""],
+    seed.subjects.map((x) => [x.id, x.name, x.code, x.color]));
+  await insertRows(s, "classes", ["id", "name", "section", "teacher_id", "subjects"], ["", "", "", "", ""],
+    seed.classes.map((c) => [c.id, c.name, c.section, c.teacherId, JSON.stringify(c.subjects)]));
+  await insertRows(s, "students", ["id", "user_id", "name", "class_id", "roll_no", "gender", "dob", "guardian_name", "parent_user_id", "status", "admission_date"], ["", "", "", "", "", "", "", "", "", "", ""],
+    seed.students.map((st) => [st.id, st.userId ?? null, st.name, st.classId, st.rollNo, st.gender, st.dob, st.guardianName, st.parentUserId ?? null, st.status, st.admissionDate]));
+  await insertRows(s, "attendance", ["id", "class_id", "date", "entries", "marked_by"], ["", "", "", "::jsonb", ""],
+    seed.attendance.map((a) => [a.id, a.classId, a.date, JSON.stringify(a.entries), a.markedBy]));
+  await insertRows(s, "exams", ["id", "name", "term", "class_id", "subject_id", "date", "max_score", "status"], ["", "", "", "", "", "", "", ""],
+    seed.exams.map((e) => [e.id, e.name, e.term, e.classId, e.subjectId, e.date, e.maxScore, e.status]));
+  await insertRows(s, "grades", ["id", "exam_id", "student_id", "score"], ["", "", "", ""],
+    seed.grades.map((g) => [g.id, g.examId, g.studentId, g.score]));
+  await insertRows(s, "assignments", ["id", "title", "description", "class_id", "subject_id", "teacher_id", "due_date", "status", "created_at"], ["", "", "", "", "", "", "", "", ""],
+    seed.assignments.map((a) => [a.id, a.title, a.description, a.classId, a.subjectId, a.teacherId, a.dueDate, a.status, a.createdAt]));
+  await insertRows(s, "submissions", ["id", "assignment_id", "student_id", "submitted_at", "status", "score", "feedback"], ["", "", "", "", "", "", ""],
+    seed.submissions.map((x) => [x.id, x.assignmentId, x.studentId, x.submittedAt, x.status, x.score ?? null, x.feedback ?? null]));
+  await insertRows(s, "fee_items", ["id", "name", "class_id", "term", "amount", "due_date"], ["", "", "", "", "", ""],
+    seed.feeItems.map((f) => [f.id, f.name, f.classId, f.term, f.amount, f.dueDate]));
+  await insertRows(s, "fee_payments", ["id", "fee_item_id", "student_id", "amount", "date", "method", "status"], ["", "", "", "", "", "", ""],
+    seed.feePayments.map((x) => [x.id, x.feeItemId, x.studentId, x.amount, x.date, x.method, x.status]));
+  await insertRows(s, "audit_logs", ["id", "timestamp", "admin_id", "admin_name", "action", "entity", "detail"], ["", "", "", "", "", "", ""],
+    seed.auditLogs.map((l) => [l.id, l.timestamp, l.actorId, l.actorName, l.action, l.entity, l.detail]));
 
   return seed;
 }

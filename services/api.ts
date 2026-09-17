@@ -20,11 +20,32 @@ import { neonBackend, loadDB as neonLoadDB, neonAvailable } from "./neon";
 
 const KEY = "edusphere-db-v1";
 let mode: "neon" | "local" = "local";
+let neonError: string | null = null;
 
 export { subscribe };
 
 export function isNeon(): boolean {
   return mode === "neon";
+}
+
+export function getNeonError(): string | null {
+  return neonError;
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = window.setTimeout(() => reject(new Error(message)), ms);
+    p.then(
+      (v) => {
+        window.clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        window.clearTimeout(t);
+        reject(e);
+      }
+    );
+  });
 }
 
 // ---------- init / loading ----------
@@ -35,10 +56,17 @@ export async function initDB(): Promise<DB> {
 
   if (neonAvailable()) {
     mode = "neon";
-    const db = await neonLoadDB();
-    setSnapshot(db);
-    emit();
-    return db;
+    try {
+      const db = await withTimeout(neonLoadDB(), 30_000, "Neon connection timed out after 30s");
+      neonError = null;
+      setSnapshot(db);
+      emit();
+      return db;
+    } catch (e) {
+      neonError = e instanceof Error ? e.message : String(e);
+      console.error("Neon init failed — falling back to local storage:", neonError);
+      mode = "local";
+    }
   }
 
   mode = "local";
