@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
 import type { DB, User } from "./types";
 import { initDB, subscribe, ready, currentUser, logout } from "./services/api";
 import { ThemeProvider, ToastProvider } from "./components/ui";
@@ -70,4 +72,9 @@ export default function App() {
       <ToastProvider>{view}</ToastProvider>
     </ThemeProvider>
   );
+}
+
+const rootEl = document.getElementById("root");
+if (rootEl) {
+  createRoot(rootEl).render(<App />);
 }
