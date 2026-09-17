@@ -1,87 +1,150 @@
-
-import React from 'react';
-
-export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT';
+export type Role = "admin" | "teacher" | "student" | "parent";
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: Role;
-  avatarUrl?: string;
-  status?: 'ACTIVE' | 'INACTIVE';
-  password?: string;
+  password: string;
+  avatarColor: string;
+  active: boolean;
 }
 
 export interface Student {
   id: string;
+  userId?: string; // linked login user (for student role)
   name: string;
-  grade: string;
-  section: string;
+  classId: string;
+  rollNo: string;
+  gender: "Male" | "Female" | "Other";
+  dob: string;
   guardianName: string;
-  contact: string;
-  attendanceRate: number;
-  feesStatus: 'PAID' | 'PENDING' | 'OVERDUE';
+  parentUserId?: string; // linked login user (for parent role)
+  status: "active" | "inactive";
+  admissionDate: string;
+}
+
+export interface ClassRoom {
+  id: string;
+  name: string;
+  section: string;
+  teacherId: string; // homeroom teacher
+  subjects: string[];
 }
 
 export interface Teacher {
   id: string;
+  userId: string;
   name: string;
-  subject: string;
   email: string;
-  classes: string[];
+  subjects: string[];
+  classes: string[]; // class ids
+  phone: string;
+  joinDate: string;
+}
+
+export interface Subject {
+  id: string;
+  name: string;
+  code: string;
+  color: string;
+}
+
+export interface AttendanceRecord {
+  id: string; // `${classId}:${date}`
+  classId: string;
+  date: string; // YYYY-MM-DD
+  entries: Record<string, "present" | "absent" | "late" | "excused">; // studentId -> status
+  markedBy: string;
+}
+
+export interface Exam {
+  id: string;
+  name: string;
+  term: string;
+  classId: string;
+  subjectId: string;
+  date: string;
+  maxScore: number;
+  status: "scheduled" | "completed";
+}
+
+export interface Grade {
+  id: string; // `${examId}:${studentId}`
+  examId: string;
+  studentId: string;
+  score: number;
 }
 
 export interface Assignment {
   id: string;
-  classId: string; // e.g. "10-A"
   title: string;
   description: string;
+  classId: string;
+  subjectId: string;
+  teacherId: string;
   dueDate: string;
-  subject: string;
-  status: 'OPEN' | 'CLOSED';
-  attachmentName?: string;
+  status: "draft" | "published" | "closed";
+  createdAt: string;
 }
 
-export interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  trend?: string;
-  trendUp?: boolean;
-}
-
-export interface AttendanceRecord {
-  id: string;
-  date: string; // ISO string
+export interface Submission {
+  id: string; // `${assignmentId}:${studentId}`
+  assignmentId: string;
   studentId: string;
-  status: 'PRESENT' | 'ABSENT' | 'LATE';
+  submittedAt: string;
+  status: "submitted" | "graded" | "missing";
+  score?: number;
+  feedback?: string;
 }
 
-export interface ExamResult {
-  studentId: string;
-  studentName: string;
-  subject: string;
-  score: number;
-  total: number;
-  grade: string;
-}
-
-export interface Announcement {
+export interface FeeItem {
   id: string;
-  title: string;
-  content: string;
+  name: string;
+  classId: string;
+  term: string;
+  amount: number;
+  dueDate: string;
+}
+
+export interface FeePayment {
+  id: string;
+  feeItemId: string;
+  studentId: string;
+  amount: number;
   date: string;
-  author: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  method: "cash" | "card" | "bank" | "online";
+  status: "paid" | "partial" | "pending";
 }
 
 export interface AuditLog {
   id: string;
-  action: 'USER_CREATED' | 'USER_UPDATED' | 'STATUS_CHANGE' | 'PASSWORD_RESET';
-  targetUserId: string;
-  targetUserName: string;
-  performedBy: string; // Name or ID of admin
   timestamp: string;
-  details: string;
+  actorId: string;
+  actorName: string;
+  action: string;
+  entity: string;
+  detail: string;
+}
+
+export interface Session {
+  userId: string;
+  loginAt: string;
+}
+
+export interface DB {
+  users: User[];
+  students: Student[];
+  classes: ClassRoom[];
+  teachers: Teacher[];
+  subjects: Subject[];
+  attendance: AttendanceRecord[];
+  exams: Exam[];
+  grades: Grade[];
+  assignments: Assignment[];
+  submissions: Submission[];
+  feeItems: FeeItem[];
+  feePayments: FeePayment[];
+  auditLogs: AuditLog[];
+  session: Session | null;
 }

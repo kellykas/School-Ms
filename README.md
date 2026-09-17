@@ -1,20 +1,40 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# EduSphere - School Management System
 
-# Run and deploy your AI Studio app
+A role-based school management platform for **Admins, Teachers, Students, and Parents**: attendance, exams & grades, assignments, fee tracking, and a full user directory with an audit trail.
 
-This contains everything you need to run your app locally.
+## Quick start
 
-View your app in AI Studio: https://ai.studio/apps/drive/1GAit7aNHY3UIhnDNm-4JkU_HzZB9Tcw9
+```bash
+npm install
+npm run dev        # binds 0.0.0.0, honors PORT
+```
 
-## Run Locally
+Then open the app and sign in. Demo accounts (pre-filled in the login screen):
 
-**Prerequisites:**  Node.js
+| Role   | Email                  | Password    |
+| ------ | ---------------------- | ----------- |
+| Admin  | admin@school.com       | password123 |
+| Teacher| anderson@school.com    | teach       |
+| Student| emma.t@student.edusphere.com | learn |
+| Parent | sarah.w@parent.edusphere.com | care  |
 
+## Architecture
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- **Frontend:** React 19 + Vite + TypeScript, Tailwind CSS, Recharts, lucide-react.
+- **Data layer:** a self-contained persistent client-side store (`services/mockData.ts` + `services/api.ts`). All data lives in `localStorage` under `edusphere-db-v1` on first load, so admin edits, attendance, and fee payments survive reloads. No backend is required to run the demo.
+- **Backend reference:** `backend/` contains an Express + SQLite REST API (login/JWT, users, students, teachers, assignments, exams, fees, attendance, audit logs). It is excluded from the frontend typecheck and is intended as the starting point if you later add a hosted database - swap the method bodies in `services/api.ts` for `fetch()` calls against it.
+
+## Scripts
+
+| Command              | Purpose                                    |
+| -------------------- | ------------------------------------------ |
+| `npm run dev`        | Start the dev server (host 0.0.0.0)        |
+| `npm run build`      | Production build to `dist/`                |
+| `npm run preview`    | Preview the production build               |
+| `npm run typecheck`  | TypeScript project check (no emit)         |
+
+## Notes
+
+- The landing page lives in `components/Landing.tsx`; sign-in is routed via `#/signin`.
+- Theme (light/dark/system) is persisted per browser.
+- AI features were intentionally removed from this build.

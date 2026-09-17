@@ -11,6 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
+tsconfig.tsbuildinfo
+
+# generated backup artifacts
+db-export.json
+backups/
 
 # Editor directories and files
 .vscode/*
